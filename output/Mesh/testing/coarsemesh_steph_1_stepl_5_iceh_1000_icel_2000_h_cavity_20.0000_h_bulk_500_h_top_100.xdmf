@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<!DOCTYPE Xdmf SYSTEM "Xdmf.dtd" []>
+<Xdmf Version="3.0" xmlns:xi="https://www.w3.org/2001/XInclude">
+  <Domain>
+    <Grid Name="mesh" GridType="Uniform">
+      <Topology TopologyType="Triangle" NumberOfElements="19662" NodesPerElement="3">
+        <DataItem Dimensions="19662 3" NumberType="Int" Format="HDF">grob_steph_1_stepl_5_iceh_1000_icel_2000_h_cavity_20.0000_h_bulk_500_h_top_100.h5:/Mesh/mesh/topology</DataItem>
+      </Topology>
+      <Geometry GeometryType="XY">
+        <DataItem Dimensions="13215 2" Format="HDF">grob_steph_1_stepl_5_iceh_1000_icel_2000_h_cavity_20.0000_h_bulk_500_h_top_100.h5:/Mesh/mesh/geometry</DataItem>
+      </Geometry>
+    </Grid>
+    <Grid Name="cell_tags" GridType="Uniform">
+      <xi:include xpointer="xpointer(/Xdmf/Domain/Grid/Geometry)" />
+      <Topology TopologyType="Triangle" NumberOfElements="19662" NodesPerElement="3">
+        <DataItem Dimensions="19662 3" NumberType="Int" Format="HDF">grob_steph_1_stepl_5_iceh_1000_icel_2000_h_cavity_20.0000_h_bulk_500_h_top_100.h5:/MeshTags/cell_tags/topology</DataItem>
+      </Topology>
+      <Attribute Name="cell_tags" AttributeType="Scalar" Center="Cell">
+        <DataItem Dimensions="19662 1" Format="HDF">grob_steph_1_stepl_5_iceh_1000_icel_2000_h_cavity_20.0000_h_bulk_500_h_top_100.h5:/MeshTags/cell_tags/Values</DataItem>
+      </Attribute>
+    </Grid>
+    <Grid Name="facet_tags" GridType="Uniform">
+      <xi:include xpointer="xpointer(/Xdmf/Domain/Grid/Geometry)" />
+      <Topology TopologyType="PolyLine" NumberOfElements="6766" NodesPerElement="2">
+        <DataItem Dimensions="6766 2" NumberType="Int" Format="HDF">grob_steph_1_stepl_5_iceh_1000_icel_2000_h_cavity_20.0000_h_bulk_500_h_top_100.h5:/MeshTags/facet_tags/topology</DataItem>
+      </Topology>
+      <Attribute Name="facet_tags" AttributeType="Scalar" Center="Cell">
+        <DataItem Dimensions="6766 1" Format="HDF">grob_steph_1_stepl_5_iceh_1000_icel_2000_h_cavity_20.0000_h_bulk_500_h_top_100.h5:/MeshTags/facet_tags/Values</DataItem>
+      </Attribute>
+    </Grid>
+  </Domain>
+</Xdmf>
