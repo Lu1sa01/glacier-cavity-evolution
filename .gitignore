@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Simulation output
+output/
+*.h5
+*.xdmf
+
+
+# Environment and local configuration
+.venv/
+.env
+
