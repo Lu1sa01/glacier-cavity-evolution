@@ -9,9 +9,6 @@ Example (repository layout):
 Example (cluster or external storage):
     python src/plot_AvsV.py --data-dir /path/to/simulation-data \
         --output-dir /path/to/figures
-
-Expected subdirectories of --data-dir: ``luisa/`` and ``scratch/``.
-These names identify the original data collections, not required cluster paths.
 """
 
 import argparse
@@ -38,11 +35,9 @@ def parse_args():
 
 
 args = parse_args()
-data_dir = args.data_dir.expanduser().resolve()
-output_dir = args.output_dir.expanduser().resolve()
-output_dir.mkdir(parents=True, exist_ok=True)
-luisa = data_dir / "luisa"
-scratch = data_dir / "scratch"
+data_dir = "../data/cluster"
+luisa = data_dir / "Luisa"
+jonas = data_dir / "jonas"
 
 # Consistent typography for the publication figures.
 mpl.rcParams.update({
