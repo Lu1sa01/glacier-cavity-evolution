@@ -22,20 +22,6 @@ following scientific Python libraries:
 - h5py
 
 
-## Repository Structure
-
-```text
-.
-├── src/
-│   ├── 2D_cavity.py
-│   └── Create_mesh_elliptical_cavity.py
-├── output/
-│   └── Simulation/
-│       └── readme.md
-├── README.md
-├── .gitignore
-└── docs/
-```
 
 ## Quickstart
 
