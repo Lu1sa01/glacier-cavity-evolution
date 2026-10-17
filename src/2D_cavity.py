@@ -10,6 +10,8 @@ implemented in FEniCS/Dolfinx and includes:
 - a penalty/Lagrange-type contact treatment near the cavity and bedrock,
 - export of geometry and diagnostic fields to XDMF and NPZ outputs.
 
+The code is structured as a parameter study driver for a glacier-cavity setup
+with a fixed mesh geometry and a configurable set of loading parameters.
 """
 
 
@@ -71,13 +73,13 @@ if not args.is_local and args.jobid is None:
 
 # Name of the input mesh.
 input_mesh = (
-    ""
-) #add input mesh
+    "mesh_superfine_steph_1_stepl_5_iceh_1000_icel_2000_h_cavity_0.1000_h_bulk_50_h_top_2.xdmf"
+)
 
 # Base name of the simulation output.
 output_simulation = "production"
 
-
+ 
 
 # Paths for local execution.
 output_prefix = "/root/share/"
@@ -138,6 +140,25 @@ ice_L = (ice_length-step_length)/2
 # PHYSICAL SIMULATION PARAMETERS
 # =============================================================================
 
+dlfx.log.set_log_level(dlfx.log.LogLevel.WARNING)
+comm = MPI.COMM_WORLD
+
+
+
+if comm.rank == 0:
+    print("Reading mesh ...")
+sys.stdout.flush()
+with dlfx.io.XDMFFile(comm, filename_mesh, 'r') as mesh_inp:
+    region = mesh_inp.read_mesh()
+    dim = region.topology.dim 
+    fdim = dim-1
+    region.topology.create_connectivity(fdim, dim)
+    facet_tags = mesh_inp.read_meshtags(region, name='Facet tags')
+    mesh_geometry = region.geometry.x
+if comm.rank == 0:
+    print("Mesh read.")
+sys.stdout.flush()
+
 
 u_total_in = dlfx.fem.Constant(region, dlfx.default_scalar_type(0.0)) 
 u_total_out = dlfx.fem.Constant(region, dlfx.default_scalar_type(0.0))
@@ -152,11 +173,11 @@ f = dlfx.fem.Constant( region, (0, -rho_ice * g), )
 
 
 # set up parameter for simulation
-p_water = 5e6
+p_water = 2e7
 v_constant_in = 1.0 # velocity [m/day]
 v_constant_out = v_constant_in #simulation is symmetric, so same velocity at outflow. This can be changed
 eta_boundary = 1e13
-T_end = 1 # XX days
+T_end = 25 # XX days
 dt_SI = 60*60      # XX seconds
 
 
@@ -178,7 +199,7 @@ with dlfx.io.XDMFFile(comm, filename_mesh, 'r') as mesh_inp:
     dim = region.topology.dim 
     fdim = dim-1
     region.topology.create_connectivity(fdim, dim)
-    facet_tags = mesh_inp.read_meshtags(region, name='facet_tags')
+    facet_tags = mesh_inp.read_meshtags(region, name='Facet tags')
     mesh_geometry = region.geometry.x
 if comm.rank == 0:
     print("Mesh read.")
@@ -397,8 +418,8 @@ def run_for_one_parameter_set(
         trial = ufl.TrialFunction(funcspace)
         test  = ufl.TestFunction(funcspace)   
 
-        a = ufl.inner(trial, test)*ufl.dx
-        L = ufl.inner(func, test)*ufl.dx
+        a = ufl.inner(trial, test)*dx
+        L = ufl.inner(func, test)*dx
 
         projection_problem = dlfx.fem.petsc.LinearProblem(
             a,
@@ -408,7 +429,6 @@ def run_for_one_parameter_set(
                 "pc_type": "lu",
                 "pc_factor_mat_solver_type": "mumps",
             },
-            petsc_options_prefix="projection_problem",
         )
         
         return projection_problem.solve()
@@ -419,7 +439,8 @@ def run_for_one_parameter_set(
 
 
         
-    ds = ufl.Measure('ds', domain=region, subdomain_data=facet_tags, metadata={'quadrature_degree':deg_quad}) #ToDo replace
+    ds = ufl.Measure('ds', domain=region, subdomain_data=facet_tags, metadata={'quadrature_degree':deg_quad}) 
+    dx = ufl.Measure("dx", domain=region)
 
 
     t = dlfx.fem.Constant(region, dlfx.default_scalar_type(0.0))
@@ -440,7 +461,8 @@ def run_for_one_parameter_set(
     #Initialize temperature and viscosity fields
     temperature.interpolate(temp_initial)
     eta_initial_expr = 0.5 * A_expr(temperature)**(-1.0/n) * (1e-12)**((1.0-n)/n)
-    eta.interpolate(dlfx.fem.Expression(eta_initial_expr, S.element.interpolation_points))
+    eta.interpolate(dlfx.fem.Expression(eta_initial_expr, S.element.interpolation_points()))
+
 
 
     # ----------------------------------------------------------------------
@@ -500,8 +522,8 @@ def run_for_one_parameter_set(
     # ----------------------------------------------------------------------
 
     form = (
-        ufl.inner(sigma_v(du, epsv_old, dt_SI, eta), eps(ddu)) * ufl.dx
-        - ufl.inner(f, ddu) * ufl.dx
+        ufl.inner(sigma_v(du, epsv_old, dt_SI, eta), eps(ddu)) * dx
+        - ufl.inner(f, ddu) * dx
         - ufl.inner(traction, ddu) *  f_cavity_exact * (ds(cavity) + ds(bedrock_tag))
         + penalty_under_ground
         + penalty_before_step
@@ -521,7 +543,6 @@ def run_for_one_parameter_set(
             "pc_type": "lu",
             "pc_factor_mat_solver_type": "mumps",
         },
-        petsc_options_prefix="hydro_problem",
     ) 
 
     # ----------------------------------------------------------------------
@@ -773,20 +794,20 @@ def run_for_one_parameter_set(
         # ----------------------------------------------------------------------
 
         # Viscous strain and strain rate
-        epsv.interpolate(dlfx.fem.Expression(eps_v(u,epsv_old,dt_SI, eta), QT.element.interpolation_points))
-        strainrate.interpolate(dlfx.fem.Expression(eps_v_rate(epsv, epsv_old, dt_SI), QT.element.interpolation_points))
+        epsv.interpolate(dlfx.fem.Expression(eps_v(u,epsv_old,dt_SI, eta), QT.element.interpolation_points()))
+        strainrate.interpolate(dlfx.fem.Expression(eps_v_rate(epsv, epsv_old, dt_SI), QT.element.interpolation_points()))
         
         strainrate_print = local_project(eps_v_rate(epsv, epsv_old, dt_SI), T)
         eta_ = local_project(eta_expr(temperature, eps_v_rate(epsv, epsv_old, dt_SI)), S)
 
         # Glen flow-rate factor
-        Arate.interpolate(dlfx.fem.Expression(A_expr(temperature), S.element.interpolation_points))
+        Arate.interpolate(dlfx.fem.Expression(A_expr(temperature), S.element.interpolation_points()))
 
         # Cavity/contact indicators and Lagrange multiplier
-        f_cavity_exact_int.interpolate(dlfx.fem.Expression(f_cavity_exact, S.element.interpolation_points))
-        f_cavity_int.interpolate(dlfx.fem.Expression(f_cavity, S.element.interpolation_points))
-        f_under_ground_int.interpolate(dlfx.fem.Expression(f_under_ground, S.element.interpolation_points))
-        lambda_ind.interpolate(dlfx.fem.Expression(lambda_fun, S.element.interpolation_points))
+        f_cavity_exact_int.interpolate(dlfx.fem.Expression(f_cavity_exact, S.element.interpolation_points()))
+        f_cavity_int.interpolate(dlfx.fem.Expression(f_cavity, S.element.interpolation_points()))
+        f_under_ground_int.interpolate(dlfx.fem.Expression(f_under_ground, S.element.interpolation_points()))
+        lambda_ind.interpolate(dlfx.fem.Expression(lambda_fun, S.element.interpolation_points()))
 
 
         # Global maximum and minimum values
@@ -882,7 +903,7 @@ def run_for_one_parameter_set(
         XDMF_eps_v.x.array[:] = eps_v_.x.array[:]
         XDMF_eps_v.x.scatter_forward()
 
-        XDMF_eps.interpolate(dlfx.fem.Expression(eps(u), T.element.interpolation_points)) 
+        XDMF_eps.interpolate(dlfx.fem.Expression(eps(u), T.element.interpolation_points())) 
 
         sig_v = local_project(sigma_v(u, epsv_old, dt_SI, eta), T)
         XDMF_sig_v.x.array[:] = sig_v.x.array[:]
@@ -998,7 +1019,3 @@ total_runtime = (runtime_end - runtime_start)/60
 
 if comm.rank == 0:
     print(f"Finished with after t={(runtime_end - runtime_step):.1f}s; simulation running for {total_runtime:.2f}min.")
-
-if comm.rank == 0:
-    print('Ich habe fertig, Kollege!')
-    sys.stdout.flush()
