@@ -174,11 +174,19 @@ f = dlfx.fem.Constant( region, (0, -rho_ice * g), )
 
 # set up parameter for simulation
 p_water = 2e7
-v_constant_in = 1.0 # velocity [m/day]
+v_constant_in = 0.5 # velocity [m/day]
 v_constant_out = v_constant_in #simulation is symmetric, so same velocity at outflow. This can be changed
 eta_boundary = 1e13
 T_end = 25 # XX days
 dt_SI = 60*60      # XX seconds
+
+if comm.rank == 0:
+    print("Simulation parameters:")
+    print(f"p_water       = {p_water:.2e} Pa")
+    print(f"v_constant_in = {v_constant_in} m/day")
+    print(f"v_constant_out= {v_constant_out} m/day")
+    print(f"T_end         = {T_end} days")
+    print(f"dt_SI         = {dt_SI} s ({dt_SI / 3600:.1f} hours)")
 
 
 # =============================================================================
@@ -693,7 +701,7 @@ def run_for_one_parameter_set(
         u_total_out.value = (v_constant_out_SI) * t.value
 
         t_days = t.value/(60*60*24)
-        print(f"[Rank {comm.rank}] Solving at t = {t_days:.2f}d")
+        # print(f"[Rank {comm.rank}] Solving at t = {t_days:.2f}d")
         sys.stdout.flush()
 
 
@@ -786,7 +794,8 @@ def run_for_one_parameter_set(
         global_max = comm.allreduce(local_max, op=MPI.MAX)
 
 
-        print(f"[Rank {comm.rank}] Solved at t = {t_days:.2f}d")
+        if comm.rank == 0:
+            print(f"[Rank {comm.rank}] Solved at t = {t_days:.2f}d")
         sys.stdout.flush()
 
         # ----------------------------------------------------------------------
