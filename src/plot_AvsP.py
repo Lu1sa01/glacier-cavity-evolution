@@ -74,7 +74,7 @@ filenames = [
     ["production_49370435Run0_v0.5_p1.0e+06_T25_eta1.00e+13.npz",
     "production_49370495Run0_v0.5_p3.0e+06_T25_eta1.00e+13.npz",
     "production_49370500Run0_v0.5_p5.0e+06_T25_eta1.00e+13.npz",
-    "production_49377963Run0_v0.5_p1.2e+07_T25_eta1.00e+13.npz",        #TODO: update
+    "production_55495515Run0_v0.5_p1.0e+07_T25_eta1.00e+13.npz",        
     "production_55468991Run0_v0.5_p2.0e+07_T25_eta1.00e+13.npz"],
 
     ["production_49370434Run0_v0.7_p1.0e+06_T25_eta1.00e+13.npz",
